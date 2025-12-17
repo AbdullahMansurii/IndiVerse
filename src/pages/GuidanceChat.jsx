@@ -47,10 +47,13 @@ export default function GuidanceChat() {
                     filter: `requestId=eq.${requestId}`
                 },
                 (payload) => {
+                    console.log('Realtime Event:', payload)
                     setMessages((prev) => [...prev, payload.new])
                 }
             )
-            .subscribe()
+            .subscribe((status) => {
+                console.log('Subscription Status:', status)
+            })
 
         return () => {
             supabase.removeChannel(channel)
@@ -132,7 +135,7 @@ export default function GuidanceChat() {
             alert('Failed to send: ' + error.message)
         } else {
             setNewMessage('')
-            fetchMessages() // Refresh chat
+            // fetchMessages() // Rely on Realtime to update UI
         }
         setSending(false)
     }
