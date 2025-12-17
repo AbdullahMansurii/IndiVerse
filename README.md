@@ -2,7 +2,7 @@
 
 <div align="center">
 
-  <img src="public/favicon.svg" alt="Indiverse Logo" width="100" />
+
 
   ### Indians Abroad, Guiding India Forward.
 
@@ -10,8 +10,7 @@
     A premium peer-to-peer mentorship platform connecting study abroad aspirants with trusted mentors at top global universities.
   </p>
 
-  [Explore the Demo](https://indi-verse-six.vercel.app/) • [Report Bug](https://github.com/yourusername/indiverse/issues) • [Request Feature](https://github.com/yourusername/indiverse/issues)
-
+ 
 </div>
 
 ---
