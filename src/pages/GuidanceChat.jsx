@@ -32,6 +32,31 @@ export default function GuidanceChat() {
         }
     }, [messages])
 
+    // Real-time Subscription
+    useEffect(() => {
+        if (!requestId) return
+
+        const channel = supabase
+            .channel(`request-${requestId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'GuidanceMessage',
+                    filter: `requestId=eq.${requestId}`
+                },
+                (payload) => {
+                    setMessages((prev) => [...prev, payload.new])
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [requestId])
+
     const fetchChatDetails = async () => {
         setLoading(true)
 
@@ -160,8 +185,8 @@ export default function GuidanceChat() {
                                 >
                                     <div
                                         className={`max-w-[70%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${isMe
-                                                ? 'bg-primary text-black rounded-tr-none'
-                                                : 'bg-white/10 text-white rounded-tl-none border border-white/5'
+                                            ? 'bg-primary text-black rounded-tr-none'
+                                            : 'bg-white/10 text-white rounded-tl-none border border-white/5'
                                             }`}
                                     >
                                         <p>{msg.content}</p>
