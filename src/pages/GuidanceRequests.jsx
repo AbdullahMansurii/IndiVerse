@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import DashboardLayout from '../layouts/DashboardLayout'
@@ -197,12 +199,12 @@ export default function GuidanceRequests() {
                                         {(userRole === 'ASPIRANT' || activeTab !== 'PENDING') && (
                                             <div className="flex items-center gap-3">
                                                 {request.status === 'ACCEPTED' && (
-                                                    <a
-                                                        href={`/requests/${request.id}`}
+                                                    <Link
+                                                        to={`/requests/${request.id}`}
                                                         className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors flex items-center gap-2"
                                                     >
                                                         <MessageSquare className="w-4 h-4" /> Open Conversation
-                                                    </a>
+                                                    </Link>
                                                 )}
                                                 <div className={`px-4 py-2 rounded-full text-xs font-bold ${request.status === 'ACCEPTED' ? 'bg-green-500/20 text-green-400' :
                                                     request.status === 'REJECTED' ? 'bg-red-500/20 text-red-400' :

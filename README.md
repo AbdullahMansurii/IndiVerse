@@ -2,7 +2,7 @@
 
 <div align="center">
 
-  
+  <img src="public/favicon.svg" alt="Indiverse Logo" width="100" />
 
   ### Indians Abroad, Guiding India Forward.
 
@@ -10,6 +10,7 @@
     A premium peer-to-peer mentorship platform connecting study abroad aspirants with trusted mentors at top global universities.
   </p>
 
+  [Explore the Demo](https://indi-verse-six.vercel.app/) • [Report Bug](https://github.com/yourusername/indiverse/issues) • [Request Feature](https://github.com/yourusername/indiverse/issues)
 
 </div>
 
@@ -20,8 +21,6 @@
 **Indiverse** cuts through the noise of expensive consultants and unstructured advice. We provide a direct, transparent channel for students to connect with mentors who have "been there, done that."
 
 Unlike traditional agencies that push affiliated universities for commissions, **Indiverse** is built on a community of verified students who offer unbiased, real-world guidance on applications, visas, accommodation, and cultural adaptation.
-
-## Live Demo:https://indi-verse-six.vercel.app/
 
 ## ✨ Key Features
 
