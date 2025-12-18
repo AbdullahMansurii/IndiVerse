@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import DashboardLayout from '../layouts/DashboardLayout'
 import { motion } from 'framer-motion'
-import { Save, User, MapPin, BookOpen, Calendar, FileText, Target, Banknote, Linkedin, Languages, Clock } from 'lucide-react'
+import { Save, User, MapPin, BookOpen, Calendar, FileText, Target, Banknote, Linkedin, Languages, Clock, ShieldCheck, AlertCircle } from 'lucide-react'
 
 export default function ProfileEditor() {
     const { user } = useAuth()
@@ -31,7 +31,9 @@ export default function ProfileEditor() {
         linkedin: '',
         languages: '',
         expertise: '',
-        availability: ''
+        availability: '',
+        helpTags: '',
+        verificationStatus: 'UNVERIFIED'
     })
 
     useEffect(() => {
@@ -63,7 +65,7 @@ export default function ProfileEditor() {
                 intendedCourse: data.intendedCourse || '',
                 budgetRange: data.budgetRange || '',
 
-                // Mentor
+                // Mentor Specific
                 currentCountry: data.currentCountry || '',
                 university: data.university || '',
                 course: data.course || '',
@@ -76,7 +78,9 @@ export default function ProfileEditor() {
                 linkedin: metadata.linkedin || '',
                 languages: metadata.languages || '',
                 expertise: metadata.expertise || '',
-                availability: metadata.availability || ''
+                availability: metadata.availability || '',
+                helpTags: metadata.helpTags || '',
+                verificationStatus: metadata.verificationStatus || 'UNVERIFIED'
             })
         }
         setLoading(false)
@@ -103,7 +107,7 @@ export default function ProfileEditor() {
             if (profile.shortGoal) score++
         } else {
             // Mentor Completeness
-            totalFields = 8
+            totalFields = 9
             if (profile.fullName) score++
             if (profile.currentCountry) score++
             if (profile.university) score++
@@ -111,7 +115,8 @@ export default function ProfileEditor() {
             if (profile.yearOfStudy) score++
             if (profile.bio) score++
             if (profile.languages) score++
-            if (profile.expertise) score++
+            if (profile.helpTags && profile.helpTags.length > 0) score++
+            if (profile.verificationStatus !== 'UNVERIFIED') score++
         }
 
         return Math.round((score / totalFields) * 100)
@@ -136,7 +141,9 @@ export default function ProfileEditor() {
             linkedin: profile.linkedin,
             languages: profile.languages,
             expertise: profile.expertise,
-            availability: profile.availability
+            availability: profile.availability,
+            helpTags: profile.helpTags,
+            verificationStatus: profile.verificationStatus
         }
 
         const profileId = profile.id || crypto.randomUUID()
@@ -313,6 +320,42 @@ export default function ProfileEditor() {
                         {/* MENTOR FIELDS */}
                         {role === 'MENTOR' && (
                             <>
+                                {/* Verification Status Banner */}
+                                <div className={`md:col-span-2 p-4 rounded-xl border flex items-center justify-between ${profile.verificationStatus === 'VERIFIED'
+                                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                                    : profile.verificationStatus === 'PENDING'
+                                        ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+                                        : 'bg-white/5 border-white/10 text-gray-400'
+                                    }`}>
+                                    <div className="flex items-center gap-3">
+                                        {profile.verificationStatus === 'VERIFIED' ? (
+                                            <div className="p-2 bg-green-500/20 rounded-full"><ShieldCheck className="w-5 h-5" /></div>
+                                        ) : (
+                                            <div className="p-2 bg-white/10 rounded-full"><AlertCircle className="w-5 h-5" /></div>
+                                        )}
+                                        <div>
+                                            <h3 className="font-bold">
+                                                {profile.verificationStatus === 'VERIFIED' ? 'Verified Mentor' :
+                                                    profile.verificationStatus === 'PENDING' ? 'Verification Pending' : 'Not Verified'}
+                                            </h3>
+                                            <p className="text-sm opacity-80">
+                                                {profile.verificationStatus === 'VERIFIED'
+                                                    ? 'Your profile is visible to all aspirants. Key academic fields are locked.'
+                                                    : 'Complete your profile and upload proof to get verified.'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {profile.verificationStatus !== 'VERIFIED' && profile.verificationStatus !== 'PENDING' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setProfile(p => ({ ...p, verificationStatus: 'PENDING' }))}
+                                            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold text-white transition-colors"
+                                        >
+                                            Request Verification
+                                        </button>
+                                    )}
+                                </div>
+
                                 <div className="space-y-2">
                                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
                                         <MapPin className="w-4 h-4 text-blue-400" /> Current Country
@@ -321,7 +364,8 @@ export default function ProfileEditor() {
                                         name="currentCountry"
                                         value={profile.currentCountry}
                                         onChange={handleChange}
-                                        className="w-full bg-surface/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 outline-none"
+                                        disabled={profile.verificationStatus === 'VERIFIED'}
+                                        className={`w-full bg-surface/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 outline-none ${profile.verificationStatus === 'VERIFIED' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -332,7 +376,8 @@ export default function ProfileEditor() {
                                         name="university"
                                         value={profile.university}
                                         onChange={handleChange}
-                                        className="w-full bg-surface/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 outline-none"
+                                        disabled={profile.verificationStatus === 'VERIFIED'}
+                                        className={`w-full bg-surface/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 outline-none ${profile.verificationStatus === 'VERIFIED' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -343,7 +388,8 @@ export default function ProfileEditor() {
                                         name="course"
                                         value={profile.course}
                                         onChange={handleChange}
-                                        className="w-full bg-surface/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 outline-none"
+                                        disabled={profile.verificationStatus === 'VERIFIED'}
+                                        className={`w-full bg-surface/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 outline-none ${profile.verificationStatus === 'VERIFIED' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -383,18 +429,36 @@ export default function ProfileEditor() {
                                         placeholder="e.g. English, Hindi, German"
                                     />
                                 </div>
-                                <div className="space-y-2 md:col-span-2">
+
+                                {/* Structured Help Tags */}
+                                <div className="md:col-span-2 space-y-3">
                                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                                        <Target className="w-4 h-4 text-purple-400" /> Area of Expertise
+                                        <Target className="w-4 h-4 text-purple-400" /> I can help with
                                     </label>
-                                    <input
-                                        name="expertise"
-                                        value={profile.expertise}
-                                        onChange={handleChange}
-                                        className="w-full bg-surface/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 outline-none"
-                                        placeholder="e.g. SOP Review, Visa Process, Part-time Jobs"
-                                    />
+                                    <div className="flex flex-wrap gap-2">
+                                        {['SOP & Applications', 'Visa Process', 'Scholarships', 'Accommodation', 'Life Abroad', 'Part-time Jobs'].map(tag => (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                onClick={() => {
+                                                    const current = profile.helpTags ? profile.helpTags.split(',') : []
+                                                    const updated = current.includes(tag)
+                                                        ? current.filter(t => t !== tag)
+                                                        : [...current, tag]
+                                                    setProfile(p => ({ ...p, helpTags: updated.join(',') }))
+                                                }}
+                                                className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${profile.helpTags?.includes(tag)
+                                                    ? 'bg-primary text-black border-primary'
+                                                    : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30'
+                                                    }`}
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-gray-500">Select only the areas you are confident in.</p>
                                 </div>
+
                                 <div className="space-y-2 md:col-span-2">
                                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
                                         <Clock className="w-4 h-4 text-orange-400" /> Availability (Hours/Week)

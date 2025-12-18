@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import DashboardLayout from '../layouts/DashboardLayout'
 import { motion } from 'framer-motion'
-import { ArrowLeft, User, Clock, MapPin, Award, Send, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, User, Clock, MapPin, Award, Send, AlertTriangle, ShieldCheck } from 'lucide-react'
 
 export default function QuestionDetail() {
     const { id } = useParams()
@@ -221,15 +221,22 @@ export default function QuestionDetail() {
                                         {answer.author?.fullName?.charAt(0) || 'M'}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-white flex items-center gap-2">
-                                            {answer.author?.fullName || 'Mentor'}
-                                            <span className="bg-secondary text-black text-[10px] px-2 py-0.5 rounded font-bold">VERIFIED MENTOR</span>
-                                        </h3>
-                                        <p className="text-xs text-gray-400">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-bold text-white group-hover:text-primary transition-colors">
+                                                {answer.author?.fullName || 'Mentor'}
+                                            </h3>
+                                            {(answer.author?.verificationStatus === 'VERIFIED' || answer.author?.metadata?.verificationStatus === 'VERIFIED') && (
+                                                <div className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full font-bold">
+                                                    <ShieldCheck className="w-3 h-3" /> Verified Student
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-gray-400 mt-0.5">
                                             {answer.author?.university} • {answer.author?.currentCountry}
                                         </p>
                                     </div>
-                                    <div className="ml-auto text-xs text-gray-500">
+                                    <div className="ml-auto flex items-center gap-2 text-xs text-gray-500">
+                                        <Clock className="w-3 h-3" />
                                         {new Date(answer.createdAt).toLocaleDateString()}
                                     </div>
                                 </div>

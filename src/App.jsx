@@ -15,6 +15,8 @@ import MyJourney from './pages/MyJourney'
 import CountryGuides from './pages/CountryGuides'
 import CountryGuideDetail from './pages/CountryGuideDetail'
 import GuidanceChat from './pages/GuidanceChat'
+import Scholarships from './pages/Scholarships'
+import Exams from './pages/Exams'
 
 function App() {
   return (
@@ -36,6 +38,8 @@ function App() {
           <Route path="/my-journey" element={<MyJourney />} />
           <Route path="/guides" element={<CountryGuides />} />
           <Route path="/guides/:slug" element={<CountryGuideDetail />} />
+          <Route path="/scholarships" element={<Scholarships />} />
+          <Route path="/exams" element={<Exams />} />
         </Routes>
       </AuthProvider>
     </Router>

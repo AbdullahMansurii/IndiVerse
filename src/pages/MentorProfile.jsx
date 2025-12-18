@@ -3,7 +3,7 @@ import { MOCK_MENTORS } from '../lib/constants'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, MapPin, BookOpen, GraduationCap, Globe, Mail, MessageSquare, Bookmark, Star, Clock } from 'lucide-react'
+import { ArrowLeft, MapPin, BookOpen, GraduationCap, Globe, MessageSquare, Bookmark, Clock, ShieldCheck, CheckCircle2, Award, Calendar as CalendarIcon, HelpCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function MentorProfile() {
@@ -52,17 +52,13 @@ export default function MentorProfile() {
     const calculateCompleteness = (profile) => {
         if (!profile) return 0
         let score = 0
-        const totalFields = 7 // fullName, targetCountry, intendedCourse, budgetRange, intakeYear, examsTaken, shortGoal
-
-        // Unpack metadata
+        const totalFields = 7
         const metadata = profile.metadata || {}
 
         if (profile.fullName) score += 1
         if (profile.targetCountry) score += 1
         if (profile.intendedCourse) score += 1
         if (profile.budgetRange) score += 1
-
-        // Check metadata fields
         if (metadata.intakeYear) score += 1
         if (metadata.examsTaken) score += 1
         if (metadata.shortGoal) score += 1
@@ -80,10 +76,8 @@ export default function MentorProfile() {
     useEffect(() => {
         const checkStatus = async () => {
             if (!user) return
-            // Skip for mock mentors
             if (MOCK_MENTORS.find(m => m.id === id)) return
 
-            // Check Connect Status
             if (mentor && mentor.userId) {
                 const { data: reqData } = await supabase
                     .from('GuidanceRequest')
@@ -94,7 +88,6 @@ export default function MentorProfile() {
 
                 if (reqData) setRequestStatus(reqData.status)
 
-                // Check Saved Status
                 const { data: savedData } = await supabase
                     .from('SavedMentor')
                     .select('id')
@@ -117,16 +110,13 @@ export default function MentorProfile() {
         }
 
         if (isSaved) {
-            // Unsave
             const { error } = await supabase
                 .from('SavedMentor')
                 .delete()
                 .eq('aspirantId', user.id)
                 .eq('mentorId', mentor.userId)
-
             if (!error) setIsSaved(false)
         } else {
-            // Save
             const { error } = await supabase
                 .from('SavedMentor')
                 .insert({
@@ -134,7 +124,6 @@ export default function MentorProfile() {
                     aspirantId: user.id,
                     mentorId: mentor.userId
                 })
-
             if (!error) setIsSaved(true)
         }
     }
@@ -142,7 +131,6 @@ export default function MentorProfile() {
     const handleConnect = async () => {
         if (!user || !mentor) return
 
-        // Mock mentor handling
         if (MOCK_MENTORS.find(m => m.id === id)) {
             alert("This is a demo mentor. You can only send requests to real mentors.")
             return
@@ -159,7 +147,7 @@ export default function MentorProfile() {
             .insert({
                 id: crypto.randomUUID(),
                 aspirantId: user.id,
-                mentorId: mentor.userId, // Use User ID
+                mentorId: mentor.userId,
                 status: 'PENDING',
                 updatedAt: new Date().toISOString()
             })
@@ -182,189 +170,186 @@ export default function MentorProfile() {
             <div className="min-h-screen bg-black text-white flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Mentor not found</h2>
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="text-primary hover:underline"
-                    >
-                        Return to Dashboard
-                    </button>
+                    <button onClick={() => navigate('/dashboard')} className="text-primary hover:underline">Return to Dashboard</button>
                 </div>
             </div>
         )
     }
 
+    const verificationStatus = mentor.verificationStatus || mentor.metadata?.verificationStatus || 'UNVERIFIED'
+    const isVerified = verificationStatus === 'VERIFIED'
+    const stats = mentor.stats || { questionsAnswered: 0, requestsAccepted: 0, conversationsHelped: 0 }
+
+    // Parse help tags safely
+    let helpTags = []
+    if (mentor.helpTags) {
+        helpTags = Array.isArray(mentor.helpTags) ? mentor.helpTags : mentor.helpTags.split(',')
+    } else if (mentor.metadata?.helpTags) {
+        helpTags = Array.isArray(mentor.metadata.helpTags) ? mentor.metadata.helpTags : mentor.metadata.helpTags.split(',')
+    }
+
+    // Parse joined date
+    const joinedDate = mentor.joinedAt || mentor.metadata?.joinedAt ? new Date(mentor.joinedAt || mentor.metadata.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Jan 2024'
+
     return (
-        <div className="min-h-screen bg-black text-white p-6 md:p-12">
+        <div className="min-h-screen bg-black text-white p-6 md:p-12 relative overflow-hidden">
+            {/* Subtle background graphic */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none -z-10" />
+
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="max-w-4xl mx-auto"
+                className="max-w-5xl mx-auto"
             >
                 <button
                     onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8"
+                    className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 group"
                 >
-                    <ArrowLeft className="w-5 h-5" /> Back
+                    <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back
                 </button>
 
-                <div className="glass-card rounded-3xl overflow-hidden">
-                    {/* Header/Banner Area */}
-                    <div className="h-48 bg-gradient-to-r from-primary/20 via-purple-900/20 to-secondary/20 relative">
-                        <div className="absolute -bottom-16 left-8 md:left-12">
-                            <div className="w-32 h-32 rounded-full bg-black p-1">
-                                <div className="w-full h-full rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-4xl font-bold">
-                                    {mentor.fullName.charAt(0)}
+                {/* Main Profile Card */}
+                <div className="bg-[#0A0A0A] border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative">
+                    {/* Verification Strip (Mobile) */}
+                    {isVerified && (
+                        <div className="md:hidden bg-green-900/20 border-b border-green-500/20 py-2 px-6 flex items-center gap-2 text-green-400 text-sm font-bold justify-center">
+                            <ShieldCheck className="w-4 h-4" /> Verified Mentor
+                        </div>
+                    )}
+
+                    <div className="p-8 md:p-12 grid md:grid-cols-[300px_1fr] gap-12">
+                        {/* Left Column: Avatar & Quick Info */}
+                        <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-6">
+                            <div className="relative">
+                                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-br from-white/10 to-white/5 border border-white/10">
+                                    <div className="w-full h-full rounded-full bg-[#111] flex items-center justify-center text-5xl font-bold">
+                                        {mentor.fullName.charAt(0)}
+                                    </div>
+                                </div>
+                                {isVerified && (
+                                    <div className="absolute bottom-2 right-2 md:right-4 bg-[#0A0A0A] p-1.5 rounded-full border border-white/10 shadow-lg" title="Identity Verified">
+                                        <div className="bg-green-500 rounded-full p-1">
+                                            <CheckCircle2 className="w-4 h-4 text-black" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <h1 className="text-2xl md:text-3xl font-bold mb-2">{mentor.fullName}</h1>
+                                {isVerified ? (
+                                    <div className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold uppercase tracking-wider cursor-help" title="University email verified.">
+                                        <ShieldCheck className="w-3.5 h-3.5" /> Verified Student
+                                    </div>
+                                ) : (
+                                    <span className="text-sm text-gray-500 italic">Unverified Profile</span>
+                                )}
+                                <p className="text-gray-400 text-sm mt-3 flex items-center justify-center md:justify-start gap-2">
+                                    <CalendarIcon className="w-4 h-4" /> Member since {joinedDate}
+                                </p>
+                            </div>
+
+                            <div className="w-full space-y-3 pt-6 border-t border-white/10">
+                                <div className="flex items-center gap-3 text-sm text-gray-300">
+                                    <MapPin className="w-4 h-4 text-gray-500 shrink-0" />
+                                    <span>{mentor.currentCountry}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm text-gray-300">
+                                    <GraduationCap className="w-4 h-4 text-gray-500 shrink-0" />
+                                    <span>{mentor.university}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm text-gray-300">
+                                    <BookOpen className="w-4 h-4 text-gray-500 shrink-0" />
+                                    <span>{mentor.course}</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="pt-20 px-8 md:px-12 pb-12">
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
-                            <div>
-                                <h1 className="text-4xl font-bold mb-2">{mentor.fullName}</h1>
-                                <div className="flex items-center gap-2 text-secondary font-medium">
-                                    <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                                    Verified Mentor
+                        {/* Right Column: Credibility & Content */}
+                        <div className="space-y-10">
+                            {/* Trust Signals / Activity Stats */}
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                                    <div className="text-2xl md:text-3xl font-bold text-white mb-1">{stats.questionsAnswered}</div>
+                                    <div className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wide font-medium">Questions<br />Answered</div>
+                                </div>
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                                    <div className="text-2xl md:text-3xl font-bold text-white mb-1">{stats.requestsAccepted}</div>
+                                    <div className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wide font-medium">Requests<br />Accepted</div>
+                                </div>
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                                    <div className="text-2xl md:text-3xl font-bold text-white mb-1">{stats.conversationsHelped}</div>
+                                    <div className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wide font-medium">People<br />Helped</div>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end gap-2">
+
+                            {/* Experience Summary */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <Award className="w-5 h-5 text-primary" />
+                                    <h3 className="text-lg font-bold text-white">Experience Summary</h3>
+                                </div>
+                                <p className="text-gray-300 leading-relaxed text-sm md:text-base">
+                                    {mentor.bio || "This mentor hasn't added a summary yet, but they are verified to be studying at the stated university."}
+                                </p>
+                            </div>
+
+                            {/* I Can Help With */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <HelpCircle className="w-5 h-5 text-secondary" />
+                                    <h3 className="text-lg font-bold text-white">I can help with</h3>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {helpTags.length > 0 ? (
+                                        helpTags.map(tag => (
+                                            <span key={tag} className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300">
+                                                {tag.trim()}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <span className="text-gray-500 italic text-sm">No specific topics listed.</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Action Area */}
+                            <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
                                 {!canConnect && (
-                                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 max-w-sm text-right">
-                                        <p className="text-orange-400 text-sm font-medium mb-1">Incomplete Profile ({completeness}%)</p>
-                                        <p className="text-xs text-gray-400 mb-2">Complete your profile to at least 70% to connect.</p>
-                                        <button
-                                            onClick={() => navigate('/profile')}
-                                            className="text-xs text-white underline hover:text-primary"
-                                        >
-                                            Complete Profile
-                                        </button>
+                                    <div className="flex items-center gap-3 text-orange-400 text-xs bg-orange-500/10 px-4 py-2 rounded-lg border border-orange-500/20">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                        Complete your profile to 70% to connect
                                     </div>
                                 )}
-                                <div className="flex gap-3">
-                                    {/* Bookmark Button */}
+
+                                <div className="flex gap-4 w-full md:w-auto">
                                     <button
                                         onClick={handleSave}
-                                        className={`p-3 rounded-xl border transition-colors ${isSaved
-                                            ? 'bg-white/10 text-primary border-primary/50'
-                                            : 'bg-transparent text-gray-400 border-white/10 hover:text-white'
-                                            }`}
-                                        title={isSaved ? "Unsave Mentor" : "Save Mentor"}
+                                        className={`flex-1 md:flex-none py-3 px-6 rounded-xl border font-semibold transition-all flex items-center justify-center gap-2 ${isSaved ? 'bg-white text-black border-white hover:bg-gray-200' : 'bg-transparent text-white border-white/20 hover:bg-white/5'}`}
                                     >
-                                        <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
+                                        <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                                        {isSaved ? 'Saved' : 'Save'}
                                     </button>
 
                                     <button
                                         onClick={handleConnect}
                                         disabled={!canConnect || requestStatus === 'PENDING' || requestStatus === 'ACCEPTED' || connecting}
                                         className={`
-                                            font-bold py-3 px-8 rounded-xl transition-all flex items-center gap-2
+                                            flex-[2] md:flex-none py-3 px-8 rounded-xl font-bold transition-all flex items-center justify-center gap-2
                                             ${requestStatus === 'ACCEPTED' ? 'bg-green-500 text-black cursor-default' :
                                                 requestStatus === 'PENDING' ? 'bg-white/10 text-white cursor-default' :
-                                                    !canConnect ? 'bg-primary/50 text-black cursor-not-allowed' :
-                                                        'bg-primary hover:bg-primary/90 text-black'}
+                                                    !canConnect ? 'bg-primary/20 text-gray-400 cursor-not-allowed' :
+                                                        'bg-primary text-black hover:bg-primary/90'}
                                         `}
                                     >
-                                        <MessageSquare className="w-5 h-5" />
-                                        {requestStatus === 'ACCEPTED' ? 'Connected' :
-                                            requestStatus === 'PENDING' ? 'Requested' :
-                                                connecting ? 'Sending...' : 'Connect Now'}
+                                        <MessageSquare className="w-4 h-4" />
+                                        {requestStatus === 'ACCEPTED' ? 'Chat Open' :
+                                            requestStatus === 'PENDING' ? 'Request Sent' :
+                                                connecting ? 'Sending...' : 'Request Guidance'}
                                     </button>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="grid md:grid-cols-2 gap-8">
-                            <div className="space-y-6">
-                                <h3 className="text-xl font-bold text-gray-200 border-b border-white/10 pb-4">Academic Profile</h3>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                                            <GraduationCap className="w-5 h-5 text-primary" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">University</p>
-                                            <p className="font-lg font-medium">{mentor.university}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                                            <BookOpen className="w-5 h-5 text-secondary" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Course</p>
-                                            <p className="font-lg font-medium">{mentor.course}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Expertise */}
-                                    {mentor.metadata?.expertise && (
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                                                <Star className="w-5 h-5 text-purple-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Expertise</p>
-                                                <p className="font-lg font-medium">{mentor.metadata.expertise}</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="space-y-6">
-                                <h3 className="text-xl font-bold text-gray-200 border-b border-white/10 pb-4">Location & Details</h3>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                                            <MapPin className="w-5 h-5 text-blue-400" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Current Location</p>
-                                            <p className="font-lg font-medium">{mentor.currentCountry}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Languages */}
-                                    {mentor.metadata?.languages && (
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                                                <Globe className="w-5 h-5 text-green-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Languages</p>
-                                                <p className="font-lg font-medium">{mentor.metadata.languages}</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Availability */}
-                                    {mentor.metadata?.availability && (
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                                                <Clock className="w-5 h-5 text-orange-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Availability</p>
-                                                <p className="font-lg font-medium">{mentor.metadata.availability} / week</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Bio Section - Full Width */}
-                            {mentor.bio && (
-                                <div className="md:col-span-2 space-y-4 pt-4 border-t border-white/10">
-                                    <h3 className="text-xl font-bold text-gray-200">About Me</h3>
-                                    <p className="text-gray-300 leading-relaxed max-w-3xl">
-                                        {mentor.bio}
-                                    </p>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
