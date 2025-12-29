@@ -13,26 +13,42 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         let mounted = true;
 
+        // 1. FAILSAFE TIMEOUT
+        // If Supabase takes longer than 3 seconds, we force the app to load.
+        // This prevents the "Infinite Spinner" of death.
+        const timer = setTimeout(() => {
+            if (mounted && loading) {
+                console.warn("Supabase auth check timed out. Forcing app load.");
+                setLoading(false);
+            }
+        }, 3000);
+
         const getSession = async () => {
             try {
+                // 2. Attempt to get session
                 const { data: { session }, error } = await supabase.auth.getSession()
 
                 if (error) {
-                    console.error('Error reading session:', error)
+                    console.error('Session error:', error)
                     if (mounted) setLoading(false)
                     return
                 }
 
                 if (session?.user) {
                     if (mounted) setUser(session.user)
-                    // Fetch role immediately but safely
-                    await fetchRole(session.user.id)
+                    // Fetch role without blocking the UI indefinitely
+                    fetchRole(session.user.id).then(() => {
+                        // Role fetched
+                    }).catch(err => {
+                        console.error('Role fetch failed:', err)
+                    })
                 } else {
                     if (mounted) setUser(null)
                 }
             } catch (err) {
                 console.error('Unexpected auth error:', err)
             } finally {
+                // 3. Clear loading state naturally
                 if (mounted) setLoading(false)
             }
         }
@@ -49,12 +65,12 @@ export const AuthProvider = ({ children }) => {
                     setRole(null)
                 }
             }
-            // Ensure loading is set to false after any auth change interaction
             if (mounted) setLoading(false)
         })
 
         return () => {
             mounted = false
+            clearTimeout(timer)
             subscription.unsubscribe()
         }
     }, [])
@@ -67,15 +83,9 @@ export const AuthProvider = ({ children }) => {
                 .eq('id', userId)
                 .single()
 
-            if (!error && data) {
-                setRole(data.role)
-            } else {
-                // If fetching role fails, we still allow the user to be 'logged in' but maybe without admin privileges
-                // This prevents the white screen of death
-                console.warn('Could not fetch user role:', error)
-            }
+            if (data) setRole(data.role)
         } catch (error) {
-            console.error('Error in fetchRole:', error)
+            console.error('Error fetching role:', error)
         }
     }
 
@@ -93,7 +103,10 @@ export const AuthProvider = ({ children }) => {
         <AuthContext.Provider value={value}>
             {loading ? (
                 <div className="flex h-screen w-screen items-center justify-center bg-black text-white">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                        <p className="text-gray-500 text-sm">Connecting...</p>
+                    </div>
                 </div>
             ) : (
                 children
