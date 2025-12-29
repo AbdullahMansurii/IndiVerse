@@ -15,7 +15,6 @@ export const AuthProvider = ({ children }) => {
 
         // 1. FAILSAFE TIMEOUT
         // If Supabase takes longer than 3 seconds, we force the app to load.
-        // This prevents the "Infinite Spinner" of death.
         const timer = setTimeout(() => {
             if (mounted && loading) {
                 console.warn("Supabase auth check timed out. Forcing app load.");
@@ -30,18 +29,12 @@ export const AuthProvider = ({ children }) => {
 
                 if (error) {
                     console.error('Session error:', error)
-                    if (mounted) setLoading(false)
-                    return
                 }
 
                 if (session?.user) {
                     if (mounted) setUser(session.user)
-                    // Fetch role without blocking the UI indefinitely
-                    fetchRole(session.user.id).then(() => {
-                        // Role fetched
-                    }).catch(err => {
-                        console.error('Role fetch failed:', err)
-                    })
+                    // Non-blocking role fetch
+                    fetchRole(session.user.id)
                 } else {
                     if (mounted) setUser(null)
                 }
@@ -56,16 +49,17 @@ export const AuthProvider = ({ children }) => {
         getSession()
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            if (session?.user) {
-                if (mounted) setUser(session.user)
-                await fetchRole(session.user.id)
-            } else {
-                if (mounted) {
+            if (mounted) {
+                if (session?.user) {
+                    setUser(session.user)
+                    // Non-blocking role fetch - don't await this if it blocks UI
+                    fetchRole(session.user.id)
+                } else {
                     setUser(null)
                     setRole(null)
                 }
+                setLoading(false)
             }
-            if (mounted) setLoading(false)
         })
 
         return () => {
@@ -78,12 +72,13 @@ export const AuthProvider = ({ children }) => {
     const fetchRole = async (userId) => {
         try {
             const { data, error } = await supabase
-                .from('User')
+                .from('User') // Make sure this table is accessible to the authenticated user!
                 .select('role')
                 .eq('id', userId)
                 .single()
 
             if (data) setRole(data.role)
+            if (error) console.warn('Role fetch warning:', error)
         } catch (error) {
             console.error('Error fetching role:', error)
         }
