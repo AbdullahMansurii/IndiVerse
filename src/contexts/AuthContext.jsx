@@ -11,70 +11,71 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        let mounted = true
+        let mounted = true;
 
-        // Safety timeout: If Supabase hands, force finish loading after 5 seconds
-        const safetyTimer = setTimeout(() => {
-            if (mounted && loading) {
-                console.warn('Auth check timed out. Forcing load completion.')
-                setLoading(false)
-            }
-        }, 5000)
-
-        const initAuth = async () => {
+        const getSession = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession()
+                const { data: { session }, error } = await supabase.auth.getSession()
+
+                if (error) {
+                    console.error('Error reading session:', error)
+                    if (mounted) setLoading(false)
+                    return
+                }
 
                 if (session?.user) {
                     if (mounted) setUser(session.user)
-                    await fetchUserRole(session.user.id)
+                    // Fetch role immediately but safely
+                    await fetchRole(session.user.id)
                 } else {
                     if (mounted) setUser(null)
                 }
-            } catch (error) {
-                console.error('Auth initialization error:', error)
+            } catch (err) {
+                console.error('Unexpected auth error:', err)
             } finally {
                 if (mounted) setLoading(false)
-                clearTimeout(safetyTimer)
             }
         }
 
-        initAuth()
+        getSession()
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             if (session?.user) {
-                setUser(session.user)
-                await fetchUserRole(session.user.id)
+                if (mounted) setUser(session.user)
+                await fetchRole(session.user.id)
             } else {
-                setUser(null)
-                setRole(null)
+                if (mounted) {
+                    setUser(null)
+                    setRole(null)
+                }
             }
-            setLoading(false)
+            // Ensure loading is set to false after any auth change interaction
+            if (mounted) setLoading(false)
         })
 
         return () => {
             mounted = false
-            clearTimeout(safetyTimer)
             subscription.unsubscribe()
         }
     }, [])
 
-    const fetchUserRole = async (userId) => {
+    const fetchRole = async (userId) => {
         try {
-            // Fetch Role from public.User table
             const { data, error } = await supabase
                 .from('User')
                 .select('role')
                 .eq('id', userId)
-                .maybeSingle()
+                .single()
 
-            if (data?.role) {
+            if (!error && data) {
                 setRole(data.role)
+            } else {
+                // If fetching role fails, we still allow the user to be 'logged in' but maybe without admin privileges
+                // This prevents the white screen of death
+                console.warn('Could not fetch user role:', error)
             }
-
-            // Note: Ban check logic is temporarily removed to ensure stability
         } catch (error) {
-            console.error('Error fetching role:', error)
+            console.error('Error in fetchRole:', error)
         }
     }
 
@@ -91,11 +92,12 @@ export const AuthProvider = ({ children }) => {
     return (
         <AuthContext.Provider value={value}>
             {loading ? (
-                <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0f] text-white">
-                    <div className="w-8 h-8 mb-4 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-gray-400 font-medium">Authenticating...</p>
+                <div className="flex h-screen w-screen items-center justify-center bg-black text-white">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                 </div>
-            ) : children}
+            ) : (
+                children
+            )}
         </AuthContext.Provider>
     )
 }
