@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import AdminLayout from '../../layouts/AdminLayout'
 import { Users, GraduationCap, CheckCircle, Clock } from 'lucide-react'
@@ -41,8 +42,8 @@ export default function AdminDashboard() {
         }
     }
 
-    const StatCard = ({ title, value, icon: Icon, color }) => (
-        <div className="glass-card p-6 rounded-2xl relative overflow-hidden group">
+    const StatCard = ({ title, value, icon: Icon, color, linkTo }) => (
+        <Link to={linkTo} className="glass-card p-6 rounded-2xl relative overflow-hidden group block transition-transform hover:scale-[1.02]">
             <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
                 <Icon className="w-16 h-16" />
             </div>
@@ -54,7 +55,7 @@ export default function AdminDashboard() {
                     <span>Overview</span>
                 </div>
             </div>
-        </div>
+        </Link>
     )
 
     if (loading) return <div className="min-h-screen bg-black text-white p-8">Loading stats...</div>
@@ -72,24 +73,28 @@ export default function AdminDashboard() {
                     value={stats.totalUsers}
                     icon={Users}
                     color="text-blue-500"
+                    linkTo="/admin/users"
                 />
                 <StatCard
                     title="Total Mentors"
                     value={stats.totalMentors}
                     icon={GraduationCap}
                     color="text-purple-500"
+                    linkTo="/admin/mentors" // Or filter users by mentor
                 />
                 <StatCard
                     title="Pending Verifications"
                     value={stats.pendingVerifications}
                     icon={Clock}
                     color="text-orange-500"
+                    linkTo="/admin/mentors"
                 />
                 <StatCard
                     title="Verified Mentors"
                     value={stats.verifiedMentors}
                     icon={CheckCircle}
                     color="text-green-500"
+                    linkTo="/admin/mentors"
                 />
             </div>
 
@@ -97,10 +102,10 @@ export default function AdminDashboard() {
             <div className="mt-12">
                 <h2 className="text-xl font-bold text-white mb-4">Quick Actions</h2>
                 <div className="grid md:grid-cols-3 gap-6">
-                    <div className="glass-card p-6 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-white/5 hover:border-primary/30">
+                    <Link to="/admin/mentors" className="glass-card p-6 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-white/5 hover:border-primary/30 block">
                         <h3 className="font-bold text-lg mb-2 text-primary">Verify Mentors</h3>
                         <p className="text-gray-400 text-sm">Review pending verification requests from new mentors.</p>
-                    </div>
+                    </Link>
                 </div>
             </div>
         </AdminLayout>

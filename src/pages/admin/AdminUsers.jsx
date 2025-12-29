@@ -28,10 +28,14 @@ export default function AdminUsers() {
         }
     }
 
-    const filteredUsers = users.filter(user =>
-        user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.targetCountry?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const filteredUsers = users.filter(user => {
+        const name = user.fullName || ''
+        const country = user.targetCountry || user.currentCountry || ''
+        const search = searchTerm.toLowerCase()
+
+        return name.toLowerCase().includes(search) ||
+            country.toLowerCase().includes(search)
+    })
 
     return (
         <AdminLayout>
