@@ -18,27 +18,12 @@ export default function Login() {
         const email = formData.get('email')
         const password = formData.get('password')
 
-        try {
-            // Create a timeout promise that rejects after 10 seconds
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Login request timed out. Please check your connection.')), 10000)
-            )
-
-            // Race the signIn against the timeout
-            const { error: authError } = await Promise.race([
-                signIn({ email, password }),
-                timeoutPromise
-            ])
-
-            if (authError) {
-                setError(authError.message)
-                setLoading(false)
-            } else {
-                navigate('/dashboard')
-            }
-        } catch (err) {
-            setError(err.message)
+        const { error: authError } = await signIn({ email, password })
+        if (authError) {
+            setError(authError.message)
             setLoading(false)
+        } else {
+            navigate('/dashboard')
         }
     }
 
