@@ -50,20 +50,7 @@ export const AuthProvider = ({ children }) => {
             const { data: profileData } = await supabase
                 .from('Profile')
                 .select('metadata')
-                .eq('id', userId) // Typo fix: in your schema Profile.id IS the userId usually? Wait.
-                // Let's check schema. Profile table usually has 'id' matching 'User.id' OR 'userId'.
-                // In early steps, we saw:
-                // create policy "Admins can view all profiles" on "Profile" for select using ( exists ( select 1 from "User" where id = auth.uid()::text ... ) );
-                // Usually Profile.id is UUID. User.id is text/uuid.
-                // Let's look at `AdminUsers.jsx` fetch: .from('Profile').select('*'). It returns `id` (profile id) and maybe `userId`?
-                // In `AdminVerifications.jsx`: .eq('id', profileId).
-                // In `Signup.jsx` (which we viewed earlier? No).
-                // Let's look at `AdminUsers.jsx` previously viewed.
-                // It renders `user.id`.
-                // In `ProfileEditor.jsx` (viewed earlier):
-                // const { data: { user } } = await supabase.auth.getUser()
-                // ... .from('Profile').select('*').eq('id', user.id).single()
-                // So Profile.id IS the user.id (1:1 mapping with same ID).
+                .eq('id', userId)
                 .single()
 
             if (profileData?.metadata?.isBanned) {

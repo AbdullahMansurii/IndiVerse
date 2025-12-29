@@ -19,7 +19,6 @@ export default function AdminUsers() {
             const { data, error } = await supabase
                 .from('Profile')
                 .select('*')
-            // .order('created_at', { ascending: false }) 
 
             if (error) throw error
             setUsers(data || [])
@@ -274,8 +273,8 @@ export default function AdminUsers() {
                                         onClick={handleBanUser}
                                         disabled={actionLoading}
                                         className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${selectedUser.metadata?.isBanned
-                                                ? 'bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20'
-                                                : 'bg-orange-500/10 text-orange-500 border border-orange-500/20 hover:bg-orange-500/20'
+                                            ? 'bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20'
+                                            : 'bg-orange-500/10 text-orange-500 border border-orange-500/20 hover:bg-orange-500/20'
                                             }`}
                                     >
                                         <Ban className="w-4 h-4" />
