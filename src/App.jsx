@@ -17,6 +17,10 @@ import CountryGuideDetail from './pages/CountryGuideDetail'
 import GuidanceChat from './pages/GuidanceChat'
 import Scholarships from './pages/Scholarships'
 import Exams from './pages/Exams'
+import AdminRoute from './routes/AdminRoute'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminVerifications from './pages/admin/AdminVerifications'
+import AdminUsers from './pages/admin/AdminUsers'
 
 function App() {
   return (
@@ -40,6 +44,13 @@ function App() {
           <Route path="/guides/:slug" element={<CountryGuideDetail />} />
           <Route path="/scholarships" element={<Scholarships />} />
           <Route path="/exams" element={<Exams />} />
+
+          {/* Admin Routes */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/mentors" element={<AdminVerifications />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+          </Route>
         </Routes>
       </AuthProvider>
     </Router>

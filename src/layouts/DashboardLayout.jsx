@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { Home, LogOut, Menu, X, User, BookOpen, Settings, MessageSquare, MessageCircle, Bookmark, Map, Globe, HelpCircle } from 'lucide-react'
+import { Home, LogOut, Menu, X, User, BookOpen, Settings, MessageSquare, MessageCircle, Bookmark, Map, Globe, HelpCircle, ShieldCheck } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function DashboardLayout({ children }) {
-    const { user, signOut } = useAuth()
+    const { user, signOut, isAdmin } = useAuth()
     const navigate = useNavigate()
     const location = useLocation()
     const [profile, setProfile] = useState(null)
@@ -50,6 +50,11 @@ export default function DashboardLayout({ children }) {
     ]
 
     const items = profile?.isStudyingAbroad ? mentorItems : aspirantItems
+
+    // Admin Link Injection
+    if (isAdmin) {
+        items.push({ icon: ShieldCheck, label: 'Admin Panel', path: '/admin' })
+    }
 
     return (
         <div className="min-h-screen flex bg-background text-white selection:bg-primary selection:text-white relative overflow-hidden">
