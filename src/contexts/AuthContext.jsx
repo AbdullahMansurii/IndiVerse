@@ -47,6 +47,7 @@ export const AuthProvider = ({ children }) => {
             if (userData) setRole(userData.role)
 
             // 2. Fetch Ban Status (metadata from Profile)
+            /* TEMPORARILY DISABLED FOR DEBUGGING
             const { data: profileData } = await supabase
                 .from('Profile')
                 .select('metadata')
@@ -60,6 +61,7 @@ export const AuthProvider = ({ children }) => {
                 setRole(null)
                 return
             }
+            */
 
             setUser(sessionUser)
 
@@ -82,7 +84,11 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {loading ? (
+                <div className="flex items-center justify-center min-h-screen bg-black text-white">
+                    Loading Authentication...
+                </div>
+            ) : children}
         </AuthContext.Provider>
     )
 }
