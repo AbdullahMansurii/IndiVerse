@@ -11,64 +11,70 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        // Check active session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-                checkUserStatus(session.user.id, session.user)
-            } else {
-                setUser(null)
+        let mounted = true
+
+        // Safety timeout: If Supabase hands, force finish loading after 5 seconds
+        const safetyTimer = setTimeout(() => {
+            if (mounted && loading) {
+                console.warn('Auth check timed out. Forcing load completion.')
                 setLoading(false)
             }
-        })
+        }, 5000)
 
-        // Listen for changes
+        const initAuth = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+
+                if (session?.user) {
+                    if (mounted) setUser(session.user)
+                    await fetchUserRole(session.user.id)
+                } else {
+                    if (mounted) setUser(null)
+                }
+            } catch (error) {
+                console.error('Auth initialization error:', error)
+            } finally {
+                if (mounted) setLoading(false)
+                clearTimeout(safetyTimer)
+            }
+        }
+
+        initAuth()
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             if (session?.user) {
-                await checkUserStatus(session.user.id, session.user)
+                setUser(session.user)
+                await fetchUserRole(session.user.id)
             } else {
                 setUser(null)
                 setRole(null)
-                setLoading(false)
             }
+            setLoading(false)
         })
 
-        return () => subscription.unsubscribe()
+        return () => {
+            mounted = false
+            clearTimeout(safetyTimer)
+            subscription.unsubscribe()
+        }
     }, [])
 
-    const checkUserStatus = async (userId, sessionUser) => {
+    const fetchUserRole = async (userId) => {
         try {
-            // 1. Fetch Role
-            const { data: userData, error: userError } = await supabase
+            // Fetch Role from public.User table
+            const { data, error } = await supabase
                 .from('User')
                 .select('role')
                 .eq('id', userId)
-                .single()
+                .maybeSingle()
 
-            if (userData) setRole(userData.role)
-
-            // 2. Fetch Ban Status (metadata from Profile)
-            /* TEMPORARILY DISABLED FOR DEBUGGING
-            const { data: profileData } = await supabase
-                .from('Profile')
-                .select('metadata')
-                .eq('id', userId)
-                .single()
-
-            if (profileData?.metadata?.isBanned) {
-                await supabase.auth.signOut()
-                alert('Your account has been suspended. Please contact support.')
-                setUser(null)
-                setRole(null)
-                return
+            if (data?.role) {
+                setRole(data.role)
             }
-            */
 
-            setUser(sessionUser)
-
+            // Note: Ban check logic is temporarily removed to ensure stability
         } catch (error) {
-            console.error('Error fetching user status:', error)
-        } finally {
-            setLoading(false)
+            console.error('Error fetching role:', error)
         }
     }
 
@@ -85,8 +91,9 @@ export const AuthProvider = ({ children }) => {
     return (
         <AuthContext.Provider value={value}>
             {loading ? (
-                <div className="flex items-center justify-center min-h-screen bg-black text-white">
-                    Loading Authentication...
+                <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0f] text-white">
+                    <div className="w-8 h-8 mb-4 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-gray-400 font-medium">Authenticating...</p>
                 </div>
             ) : children}
         </AuthContext.Provider>
