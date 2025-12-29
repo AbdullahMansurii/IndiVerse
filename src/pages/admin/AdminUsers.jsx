@@ -17,7 +17,8 @@ export default function AdminUsers() {
             const { data, error } = await supabase
                 .from('Profile')
                 .select('*')
-                .order('created_at', { ascending: false })
+                .select('*')
+            // .order('created_at', { ascending: false }) // 'created_at' does not exist on Profile
 
             if (error) throw error
             setUsers(data)
@@ -90,7 +91,7 @@ export default function AdminUsers() {
                                         {user.isStudyingAbroad ? user.currentCountry : user.targetCountry || '-'}
                                     </td>
                                     <td className="p-4 text-gray-400 text-sm">
-                                        {new Date(user.created_at).toLocaleDateString()}
+                                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
                                     </td>
                                 </tr>
                             ))}
