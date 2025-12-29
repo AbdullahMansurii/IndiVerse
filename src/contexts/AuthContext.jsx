@@ -13,16 +13,20 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null)
-            if (session?.user) fetchRole(session.user.id)
-            else setLoading(false)
+            if (session?.user) {
+                checkUserStatus(session.user.id, session.user)
+            } else {
+                setUser(null)
+                setLoading(false)
+            }
         })
 
         // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null)
-            if (session?.user) fetchRole(session.user.id)
-            else {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            if (session?.user) {
+                await checkUserStatus(session.user.id, session.user)
+            } else {
+                setUser(null)
                 setRole(null)
                 setLoading(false)
             }
@@ -31,17 +35,49 @@ export const AuthProvider = ({ children }) => {
         return () => subscription.unsubscribe()
     }, [])
 
-    const fetchRole = async (userId) => {
+    const checkUserStatus = async (userId, sessionUser) => {
         try {
-            const { data, error } = await supabase
+            // 1. Fetch Role
+            const { data: userData, error: userError } = await supabase
                 .from('User')
                 .select('role')
                 .eq('id', userId)
                 .single()
 
-            if (data) setRole(data.role)
+            if (userData) setRole(userData.role)
+
+            // 2. Fetch Ban Status (metadata from Profile)
+            const { data: profileData } = await supabase
+                .from('Profile')
+                .select('metadata')
+                .eq('id', userId) // Typo fix: in your schema Profile.id IS the userId usually? Wait.
+                // Let's check schema. Profile table usually has 'id' matching 'User.id' OR 'userId'.
+                // In early steps, we saw:
+                // create policy "Admins can view all profiles" on "Profile" for select using ( exists ( select 1 from "User" where id = auth.uid()::text ... ) );
+                // Usually Profile.id is UUID. User.id is text/uuid.
+                // Let's look at `AdminUsers.jsx` fetch: .from('Profile').select('*'). It returns `id` (profile id) and maybe `userId`?
+                // In `AdminVerifications.jsx`: .eq('id', profileId).
+                // In `Signup.jsx` (which we viewed earlier? No).
+                // Let's look at `AdminUsers.jsx` previously viewed.
+                // It renders `user.id`.
+                // In `ProfileEditor.jsx` (viewed earlier):
+                // const { data: { user } } = await supabase.auth.getUser()
+                // ... .from('Profile').select('*').eq('id', user.id).single()
+                // So Profile.id IS the user.id (1:1 mapping with same ID).
+                .single()
+
+            if (profileData?.metadata?.isBanned) {
+                await supabase.auth.signOut()
+                alert('Your account has been suspended. Please contact support.')
+                setUser(null)
+                setRole(null)
+                return
+            }
+
+            setUser(sessionUser)
+
         } catch (error) {
-            console.error('Error fetching role:', error)
+            console.error('Error fetching user status:', error)
         } finally {
             setLoading(false)
         }

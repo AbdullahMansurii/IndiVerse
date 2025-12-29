@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import AdminLayout from '../../layouts/AdminLayout'
-import { Search, X, User, MapPin, BookOpen, GraduationCap, Globe } from 'lucide-react'
+import { Search, X, User, MapPin, BookOpen, GraduationCap, Globe, Shield, Trash2, Ban } from 'lucide-react'
 
 export default function AdminUsers() {
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedUser, setSelectedUser] = useState(null)
+    const [actionLoading, setActionLoading] = useState(false)
 
     useEffect(() => {
         fetchUsers()
@@ -18,6 +19,7 @@ export default function AdminUsers() {
             const { data, error } = await supabase
                 .from('Profile')
                 .select('*')
+            // .order('created_at', { ascending: false }) 
 
             if (error) throw error
             setUsers(data || [])
@@ -36,6 +38,99 @@ export default function AdminUsers() {
         return name.toLowerCase().includes(search) ||
             country.toLowerCase().includes(search)
     })
+
+    const handleUpdateRole = async (newRole) => {
+        if (!selectedUser) return
+        if (!confirm(`Are you sure you want to change this user's role to ${newRole}?`)) return
+        setActionLoading(true)
+
+        try {
+            // 1. Update public.User role
+            const { error: userError } = await supabase
+                .from('User')
+                .update({ role: newRole })
+                .eq('id', selectedUser.id) // Profile.id === User.id
+
+            if (userError) throw userError
+
+            // 2. Update Profile isStudyingAbroad flag (sync)
+            const isMentor = newRole === 'MENTOR'
+            await supabase
+                .from('Profile')
+                .update({ isStudyingAbroad: isMentor })
+                .eq('id', selectedUser.id)
+
+            alert('User role updated successfully')
+            fetchUsers() // Refresh list
+            setSelectedUser(null)
+        } catch (error) {
+            console.error('Error updating role:', error)
+            alert('Failed to update role: ' + error.message)
+        } finally {
+            setActionLoading(false)
+        }
+    }
+
+    const handleBanUser = async () => {
+        if (!selectedUser) return
+        const isBanned = selectedUser.metadata?.isBanned
+        const action = isBanned ? 'unban' : 'ban'
+
+        if (!confirm(`Are you sure you want to ${action} this user?`)) return
+        setActionLoading(true)
+
+        try {
+            const updatedMetadata = {
+                ...(selectedUser.metadata || {}),
+                isBanned: !isBanned
+            }
+
+            const { error } = await supabase
+                .from('Profile')
+                .update({ metadata: updatedMetadata })
+                .eq('id', selectedUser.id)
+
+            if (error) throw error
+
+            alert(`User ${action}ned successfully`)
+            fetchUsers()
+            setSelectedUser(null)
+        } catch (error) {
+            console.error('Error banning user:', error)
+            alert('Failed to update ban status')
+        } finally {
+            setActionLoading(false)
+        }
+    }
+
+    const handleDeleteUser = async () => {
+        if (!selectedUser) return
+        if (!confirm('DANGER: Are you sure you want to PERMANENTLY DELETE this user? This action cannot be undone.')) return
+
+        // Final confirmation
+        if (!confirm('Please confirm again. This will remove all their data from the database.')) return
+
+        setActionLoading(true)
+
+        try {
+            // Attempt to delete from public.User (Main record)
+            const { error } = await supabase
+                .from('User')
+                .delete()
+                .eq('id', selectedUser.id)
+
+            if (error) throw error
+
+            alert('User deleted from database.')
+            setUsers(prev => prev.filter(u => u.id !== selectedUser.id))
+            setSelectedUser(null)
+        } catch (error) {
+            console.error('Error deleting user:', error)
+            alert('Failed to delete user. Ensure no other records (like Messages) depend on this user (Foreign Key constraints), or contact support.')
+        } finally {
+            setActionLoading(false)
+        }
+    }
 
     const DetailItem = ({ icon: Icon, label, value }) => (
         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
@@ -88,7 +183,12 @@ export default function AdminUsers() {
                                             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white">
                                                 {user.fullName?.charAt(0)}
                                             </div>
-                                            <span className="font-medium text-white">{user.fullName}</span>
+                                            <div>
+                                                <span className="font-medium text-white block">{user.fullName}</span>
+                                                {user.metadata?.isBanned && (
+                                                    <span className="text-[10px] bg-red-500 text-white px-1.5 rounded">BANNED</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="p-4">
@@ -126,7 +226,10 @@ export default function AdminUsers() {
                                     {selectedUser.fullName?.charAt(0)}
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-white">{selectedUser.fullName}</h2>
+                                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                        {selectedUser.fullName}
+                                        {selectedUser.metadata?.isBanned && <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded">BANNED</span>}
+                                    </h2>
                                     <span className={`text-xs font-bold px-2 py-0.5 rounded ${selectedUser.isStudyingAbroad ? 'text-purple-400 bg-purple-500/10' : 'text-blue-400 bg-blue-500/10'}`}>
                                         {selectedUser.isStudyingAbroad ? 'MENTOR ACCOUNT' : 'ASPIRANT ACCOUNT'}
                                     </span>
@@ -138,6 +241,60 @@ export default function AdminUsers() {
                             >
                                 <X className="w-5 h-5" />
                             </button>
+                        </div>
+
+                        {/* Management Actions */}
+                        <div className="p-6 bg-white/5 border-b border-white/10">
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Shield className="w-4 h-4 text-primary" /> Admin Actions
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Role Change */}
+                                <div className="space-y-2">
+                                    <label className="text-xs text-gray-400">Change Role</label>
+                                    <div className="flex gap-2">
+                                        <select
+                                            className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white w-full focus:outline-none focus:border-primary"
+                                            onChange={(e) => handleUpdateRole(e.target.value)}
+                                            defaultValue=""
+                                            disabled={actionLoading}
+                                        >
+                                            <option value="" disabled>Select Role...</option>
+                                            <option value="ASPIRANT">Aspirant</option>
+                                            <option value="MENTOR">Mentor</option>
+                                            <option value="ADMIN">Admin</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Ban User */}
+                                <div className="space-y-2">
+                                    <label className="text-xs text-gray-400">Account Status</label>
+                                    <button
+                                        onClick={handleBanUser}
+                                        disabled={actionLoading}
+                                        className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${selectedUser.metadata?.isBanned
+                                                ? 'bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20'
+                                                : 'bg-orange-500/10 text-orange-500 border border-orange-500/20 hover:bg-orange-500/20'
+                                            }`}
+                                    >
+                                        <Ban className="w-4 h-4" />
+                                        {selectedUser.metadata?.isBanned ? 'Unban User' : 'Ban User'}
+                                    </button>
+                                </div>
+
+                                {/* Delete User */}
+                                <div className="space-y-2">
+                                    <label className="text-xs text-gray-400">Danger Zone</label>
+                                    <button
+                                        onClick={handleDeleteUser}
+                                        disabled={actionLoading}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 text-sm font-bold transition-all"
+                                    >
+                                        <Trash2 className="w-4 h-4" /> Delete Database
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="p-6 space-y-6">
